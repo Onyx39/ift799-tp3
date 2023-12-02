@@ -19,12 +19,14 @@ def creer_nouveaux_fichiers () :
 
     Aucune entrée
 
-    Aucun sortie
+    Aucune sortie
     """
 
+    # Filtrage des données de MOVIES et enregistrement
     movies1 = MOVIES[MOVIES['genres'] != '(no genres listed)']
     DataFrame.to_csv(movies1, "donnees/movies1.csv")
 
+    # Filtrage des données de RATINGS
     ratings1 = RATINGS[RATINGS['movieId'].isin(movies1['movieId'])]
 
     # Traitement des valeurs non entières
@@ -34,6 +36,7 @@ def creer_nouveaux_fichiers () :
     ratings1['rating'].replace(3.5, 3, inplace=True)
     ratings1['rating'].replace(4.5, 4, inplace=True)
 
+    # Enregistrement du nouveau fichier
     DataFrame.to_csv(ratings1, "donnees/ratings1.csv")
 
     return True
