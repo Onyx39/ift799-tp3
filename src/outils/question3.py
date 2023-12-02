@@ -3,10 +3,9 @@ Question 3
 Création d'une matrice de contenu pour les films
 """
 
-from pandas import DataFrame, read_csv
-
-# Importation des nouvelles données
-MOVIES1 = DataFrame(read_csv("donnees/movies1.csv"))
+from pandas import DataFrame
+from constantes import LISTE_GENRES
+from donnees_calculees import MOVIES1
 
 def creation_matrice_films () :
     """
@@ -18,29 +17,9 @@ def creation_matrice_films () :
     Aucune sortie
     """
 
-    ###########################
-    # Récupération des genres #
-    ###########################
-
-    liste_genres = []
-
-    # Parcours des données
-    for donnee in MOVIES1["genres"]:
-        # Liste des genres du film courant
-        genres = donnee.split("|")
-        if genres != ['(no genres listed)'] :
-            for genre in genres :
-                if genre not in liste_genres :
-                    # Ajout d'un nouveau genre
-                    liste_genres.append(genre)
-
-
-    ##########################
-    # Création de la matrice #
-    ##########################
 
     # Creation d'une matrice vide
-    matrice = DataFrame(None, columns=liste_genres, index=MOVIES1["movieId"])
+    matrice = DataFrame(None, columns=LISTE_GENRES, index=MOVIES1["movieId"])
 
     # Remplissage de la matrice avec des 0
     matrice.fillna(value=0, inplace=True)
