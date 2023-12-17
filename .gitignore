@@ -1,3 +1,5 @@
 __pycache__*
-movies*
-ratings*
+*.csv
+*.npz
+
+question4_threading.*
