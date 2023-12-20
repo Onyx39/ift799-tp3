@@ -28,26 +28,21 @@ def clustering_spectral (donnees : DataFrame) :
     Auncune sortie
     """
 
-    # Nombre de données retenues pour le clustering
-    # A adapter selon le temps de calcul disponible
-    # Je pense que 50000 ça peut être faisable, au dessus c'est vraiment compliqué
-    sample = 10000
-
-    # Temps de calcul trop long
-    # Réduction des données pour le clustering
-    donnees_reduites = donnees.sample(n=sample, random_state=42)
 
     for nb_clusters in [2, 3, 4, 5] :
+        print(nb_clusters)
+        print(donnees.shape[0])
         spectral = SpectralClustering(n_clusters=nb_clusters,
                                       affinity='nearest_neighbors',
-                                      random_state=0)
-        donnees_reduites['cluster'] = spectral.fit_predict(donnees_reduites)
-        donnees_reduites.to_csv(f"resultats/df_spactral_{nb_clusters}.csv")
+                                      random_state=0,
+                                      n_jobs=-1)
+        donnees['cluster'] = spectral.fit_predict(donnees)
+        donnees.to_csv(f"resultats/df_spactral_{nb_clusters}.csv", index=False)
 
-        silhouette_avg = round(silhouette_score(donnees_reduites, donnees_reduites['cluster']), 3)
+        silhouette_avg = round(silhouette_score(donnees, donnees['cluster']), 3)
         print(f"Silhouette Score (n = {nb_clusters}): {silhouette_avg}")
 
-        visualisation_clusters(donnees_reduites, nb_clusters, sample, silhouette_avg)
+        visualisation_clusters(donnees, nb_clusters, donnees.shape[0], silhouette_avg)
 
 
 def visualisation_clusters (dataframe : DataFrame, nb_clusters : int, sample : int, sil : float) :

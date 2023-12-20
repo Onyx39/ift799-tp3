@@ -71,6 +71,6 @@ def creation_matrice_utilisateurs (movies_matrix : DataFrame,
         matrice_utilisateurs.iloc[matrice_utilisateurs.index == user_id] = profil
 
     # Sauvegarde de la matrice des utilisateurs
-    matrice_utilisateurs.to_csv('donnees/user_matrix.csv')
+    matrice_utilisateurs.to_csv('donnees/user_matrix.csv', index=False)
 
     return True
