@@ -3,20 +3,15 @@ Question 6
 Validation du système de recommandations
 """
 
-from heapq import merge
-import sqlite3
 from matplotlib import pyplot as plt
 import numpy as np
 import seaborn as sns
 from pandas import DataFrame, read_csv
 from sklearn import metrics
-from sklearn.metrics import confusion_matrix, euclidean_distances, f1_score
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import confusion_matrix, f1_score
+from sklearn.model_selection import RandomizedSearchCV, StratifiedShuffleSplit, train_test_split
 
-def separer_donnees(ratings):
-    seed = 42
-    np.random.seed(seed)
+def separer_donnees(ratings, seed):
 
     # On fait une stratification des ensembles de données pour garder les même proportions
     ## Division en ensembles d'entraînement (60%) et de temp = test/validation (40%)
@@ -30,7 +25,7 @@ def separer_donnees(ratings):
     ratings_evaluation.to_csv('donnees/question6/ratings_evaluation.csv', index=False)
     ratings_test.to_csv('donnees/question6/ratings_test.csv', index=False)
 
-def creation_entrees_classificateur(dataset_path, clustering_path, profils, set):
+def creation_entrees_classificateur(dataset_path, clustering_path, profils):
     
     set = read_csv(dataset_path)
     clusters_raw = read_csv(clustering_path)
@@ -57,9 +52,10 @@ def creation_entrees_classificateur(dataset_path, clustering_path, profils, set)
         current_user_id = set_clusters.loc[i, 'userId']
         current_movie_id = set_clusters.loc[i, 'movieId']
         current_rating = set_clusters.loc[i, 'rating']
+        current_cluster = set_clusters.loc[i, 'cluster']
         
         # On sélectionne les voisins ayant le même cluster
-        neighbors_cluster_df = set_clusters[set_clusters['userId'] == current_user_id]
+        neighbors_cluster_df = set_clusters[set_clusters['cluster'] == current_cluster]
         
         # Parmi ces voisins de cluster, on sélectionne ceux qui ont noté le film voulu
         neighbors_cluster_movie_df = neighbors_cluster_df[neighbors_cluster_df['movieId'] == current_movie_id]
@@ -70,82 +66,103 @@ def creation_entrees_classificateur(dataset_path, clustering_path, profils, set)
         data['movieId'].append(current_movie_id)
         data['userRating'].append(current_rating)
         
-        for index in range(5):
-            data[f'neighborRating{index}'].append(neighbors_ratings[index])
+        for index in range(len(neighbors_ratings)):
+            data[f'neighborRating{index + 1}'].append(neighbors_ratings[index])
+
     df = DataFrame(data)
-    df.to_csv('donnees/question6/entrees_classificateur.csv', index=False)   
+    df.to_csv('donnees/question6/entrees_classificateur.csv')   
         
 def chercher_5_plus_proches_voisins(profils, cluster_neighbors, user_id):
     closest_neighbors_ratings = [] # contiendra l'id de chaque voisin sélectionné
     distances = [] # distances[i] contiendra les distances entre neighbors[i] et user_id
-        
-    nb_neighbors = len(cluster_neighbors)
-    for j in range(nb_neighbors):
-        current_neighbor_id = cluster_neighbors[j, 'userId']
-            
-        dist_user_i = euclidean_distances(profils[user_id-1], profils[current_neighbor_id-1])
-            
-        # S'il y a moins de 5 voisins enregistrés, on ajoute le voisin courant
-        if len(closest_neighbors_ratings) < 5:
-            closest_neighbors_ratings.append(cluster_neighbors[j, 'rating'])
-            distances.append(dist_user_i)
-        else:
-            # Sinon, on cherche le voisin enregistré le plus distant de user_id
-            dist_max = max(distances)
-            index_max = distances.index(dist_max)
+    
+    for j in cluster_neighbors.index:
+        current_neighbor_id = cluster_neighbors.loc[j, 'userId'] + 1
+
+        if (current_neighbor_id != user_id):
+            dist_user_i = np.linalg.norm((profils.loc[user_id-1]).to_numpy() - (profils.loc[current_neighbor_id-1]).to_numpy())
                 
-            # Si le voisin courant est plus proche de user_id,
-            # on supprime le voisin enregistré le plus distant
-            # et on ajoute le voisin courant
-            if dist_user_i < dist_max:
-                    
-                _ = distances.pop(index_max)
-                _ = closest_neighbors_ratings.pop(index_max)
-                    
-                closest_neighbors_ratings.append(cluster_neighbors[j, 'rating'])
+            # S'il y a moins de 5 voisins enregistrés, on ajoute le voisin courant
+            if len(closest_neighbors_ratings) < 5:
+                closest_neighbors_ratings.append(cluster_neighbors.loc[j, 'rating'])
                 distances.append(dist_user_i)
+            else:
+                # Sinon, on cherche le voisin enregistré le plus distant de user_id
+                dist_max = max(distances)
+                index_max = distances.index(dist_max)
+                    
+                # Si le voisin courant est plus proche de user_id,
+                # on supprime le voisin enregistré le plus distant
+                # et on ajoute le voisin courant
+                if dist_user_i < dist_max:
+                        
+                    _ = distances.pop(index_max)
+                    _ = closest_neighbors_ratings.pop(index_max)
+                        
+                    closest_neighbors_ratings.append(cluster_neighbors.loc[j, 'rating'])
+                    distances.append(dist_user_i)
                 
     return closest_neighbors_ratings
 
-def entrainer():
-    return
 
-def chercher_hyperparametres():
-    return
-
-def predire():
-    return
-
-def evaluer():
-    return
-
-def classificateur(films, votes):
-    graine = 42
-    np.random.seed(graine)
+class classificateur :
+    def __init__(self, model):
+        self.model = model
+        self.parameters = None
     
-    modele = DecisionTreeClassifier(criterion='log_loss', random_state=graine)
-    modele.fit(films, votes)
-    predictions = modele.predict(films)
-
-
-    # Affichage d'une matrice de confusion
+    def separer_donnees_etiquettes(self, set):
+        X = set[['userId', 'movieId', 'neighborRating1', 'neighborRating2', 'neighborRating3', 'neighborRating4', 'neighborRating5']]
+        Y = set[['userRating']]
+        
+        return X, Y
     
-    plt.figure()
-    confusion_mtrx = metrics.confusion_matrix(votes, predictions)
-    group_names = ['TrueNeg', 'FalsePos', 'FalseNeg','TruePos']
-    group_counts = ["{0: 0.0f}".format(value)
-    for value in confusion_mtrx.flatten()]
-    group_percentages =['{0:.2%}'.format(value) for value in confusion_mtrx.flatten() / np.sum(confusion_mtrx)]
-    labels =[f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names, group_counts, group_percentages)]
-    labels = np.asarray(labels).reshape(2, 2)
-    ax = plt.axes()
-    sns.heatmap(confusion_mtrx, annot=labels, fmt='', cmap='Blues')
-    ax.set_title("Matrice de confusion du modèle")
+    def entrainer(self, X, Y):
+        self.model.fit(X, Y)
 
+    def chercher_hyperparametres(self, X, Y, seed):
+        param_grid = {
+            'criterion': ['log_loss'],
+            'max_depth': [None, 10, 20, 30, 40, 50],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4]
+        }
+        
+        cv = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=seed)
+        grid_search = RandomizedSearchCV(estimator=self.model, param_grid=param_grid, cv=cv, scoring='f1', random_state=seed)
 
-    # Affichage du score F1
+        grid_search.fit(X, Y)
+        best_model = grid_search.best_estimator_
+        print(f'Les meilleurs paramètres trouvés sont : {grid_search.best_params_}')
+        
+        return best_model
+
+    def predire(self, x):
+        y = self.model.predict(x)
+        return y
+
+    def predire_multiple(self, X):
+        Y = []
+
+        for x in X:
+            Y.append(self.predire(x))
+
+        return Y
     
-    f1_res = f1_score(votes, predictions, average='weighted', labels=predictions)
-    print(f'Score F1 du modèle : {f1_res}')
-
-    
+    def evaluer(self, X, Y):
+        Y_pred = self.predire_multiple(self, X)
+        
+        # Calcul du score F1
+        f1_res = f1_score(y_true=Y, y_pred=Y_pred, average='weighted', labels=Y_pred)
+        print(f'Score F1 du modèle : {f1_res}')
+        
+        # Tracé de la matrice de confusion
+        confusion_mtrx = confusion_matrix(Y, Y_pred)
+        group_names = ['TrueNeg', 'FalsePos', 'FalseNeg','TruePos']
+        group_counts = ["{0: 0.0f}".format(value)
+        for value in confusion_mtrx.flatten()]
+        group_percentages =['{0:.2%}'.format(value) for value in confusion_mtrx.flatten() / np.sum(confusion_mtrx)]
+        labels =[f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names, group_counts, group_percentages)]
+        labels = np.asarray(labels).reshape(2, 2)
+        ax = plt.axes()
+        sns.heatmap(confusion_mtrx, annot=labels, fmt='', cmap='Blues')
+        ax.set_title("Matrice de confusion du modèle")
