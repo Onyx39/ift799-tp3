@@ -67,7 +67,7 @@ if __name__ == "__main__" :
     ratings = read_csv('donnees/ratings1.csv')
     
     # Création des trois fichiers de données
-    q6.separer_donnees(ratings.iloc[:10000], seed)
+    q6.separer_donnees(ratings, seed)
 
 
     # Création des entrées du classificateur pour l'ensemble d'entrainement
