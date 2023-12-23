@@ -25,7 +25,7 @@ def separer_donnees(ratings, seed):
     ratings_evaluation.to_csv('donnees/question6/ratings_evaluation.csv', index=False)
     ratings_test.to_csv('donnees/question6/ratings_test.csv', index=False)
 
-def creation_entrees_classificateur(dataset_path, clustering_path, profils):
+def creation_entrees_classificateur(result_path, dataset_path, clustering_path, profils):
     
     set = read_csv(dataset_path)
     clusters_raw = read_csv(clustering_path)
@@ -68,9 +68,11 @@ def creation_entrees_classificateur(dataset_path, clustering_path, profils):
         
         for index in range(len(neighbors_ratings)):
             data[f'neighborRating{index + 1}'].append(neighbors_ratings[index])
+        for index in range(len(neighbors_ratings), 5):
+            data[f'neighborRating{index + 1}'].append(sum(neighbors_ratings) / len(neighbors_ratings))
 
     df = DataFrame(data)
-    df.to_csv('donnees/question6/entrees_classificateur.csv')   
+    df.to_csv(result_path)   
         
 def chercher_5_plus_proches_voisins(profils, cluster_neighbors, user_id):
     closest_neighbors_ratings = [] # contiendra l'id de chaque voisin sélectionné
@@ -120,7 +122,7 @@ class classificateur :
         self.model.fit(X, Y)
 
     def chercher_hyperparametres(self, X, Y, seed):
-        param_grid = {
+        param = {
             'criterion': ['log_loss'],
             'max_depth': [None, 10, 20, 30, 40, 50],
             'min_samples_split': [2, 5, 10],
@@ -128,7 +130,7 @@ class classificateur :
         }
         
         cv = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=seed)
-        grid_search = RandomizedSearchCV(estimator=self.model, param_grid=param_grid, cv=cv, scoring='f1', random_state=seed)
+        grid_search = RandomizedSearchCV(estimator=self.model, param_distributions=param, cv=cv, scoring='f1', random_state=seed)
 
         grid_search.fit(X, Y)
         best_model = grid_search.best_estimator_
@@ -136,20 +138,13 @@ class classificateur :
         
         return best_model
 
-    def predire(self, x):
-        y = self.model.predict(x)
-        return y
-
-    def predire_multiple(self, X):
-        Y = []
-
-        for x in X:
-            Y.append(self.predire(x))
-
+    def predire(self, X):
+        Y = self.model.predict(X)
         return Y
+
     
     def evaluer(self, X, Y):
-        Y_pred = self.predire_multiple(self, X)
+        Y_pred = self.predire(X)
         
         # Calcul du score F1
         f1_res = f1_score(y_true=Y, y_pred=Y_pred, average='weighted', labels=Y_pred)
@@ -157,12 +152,4 @@ class classificateur :
         
         # Tracé de la matrice de confusion
         confusion_mtrx = confusion_matrix(Y, Y_pred)
-        group_names = ['TrueNeg', 'FalsePos', 'FalseNeg','TruePos']
-        group_counts = ["{0: 0.0f}".format(value)
-        for value in confusion_mtrx.flatten()]
-        group_percentages =['{0:.2%}'.format(value) for value in confusion_mtrx.flatten() / np.sum(confusion_mtrx)]
-        labels =[f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names, group_counts, group_percentages)]
-        labels = np.asarray(labels).reshape(2, 2)
-        ax = plt.axes()
-        sns.heatmap(confusion_mtrx, annot=labels, fmt='', cmap='Blues')
-        ax.set_title("Matrice de confusion du modèle")
+        print(confusion_mtrx)

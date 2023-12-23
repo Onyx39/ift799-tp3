@@ -21,29 +21,29 @@ if __name__ == "__main__" :
     # QUESTION 1 #
     ##############
 
-    q1.histogramme_occurrence_genres()
+    #q1.histogramme_occurrence_genres()
 
     ##############
     # QUESTION 2 #
     ##############
 
-    q2.creer_nouveaux_fichiers()
+    #q2.creer_nouveaux_fichiers()
 
     ##############
     # QUESTION 3 #
     ##############
 
     MOVIES1 = DataFrame(read_csv("donnees/movies1.csv"))
-    q3.creation_matrice_films(MOVIES1)
+    #q3.creation_matrice_films(MOVIES1)
 
     ##############
     # QUESTION 4 #
     ##############
 
     # Charger le fichier npz
-    donnees_chargees = load('donnees/movies_matrix.npz')
-    MOVIES_MATRIX = csr_matrix((donnees_chargees['data'], donnees_chargees['indices'],
-                                    donnees_chargees['indptr']), shape=donnees_chargees['shape'])
+    #donnees_chargees = load('donnees/movies_matrix.npz')
+    #MOVIES_MATRIX = csr_matrix((donnees_chargees['data'], donnees_chargees['indices'],
+    #                                donnees_chargees['indptr']), shape=donnees_chargees['shape'])
 
     RATINGS1 = DataFrame(read_csv("donnees/ratings1.csv"))
 
@@ -55,7 +55,7 @@ if __name__ == "__main__" :
     ##############
 
     PROFILS = DataFrame(read_csv("donnees/user_matrix.csv"))
-    q5.clustering_spectral(PROFILS)
+    #q5.clustering_spectral(PROFILS)
     
     ##############
     # QUESTION 6 #
@@ -77,7 +77,9 @@ if __name__ == "__main__" :
     
     clustering_path = 'resultats/df_spactral_2.csv'
     
-    q6.creation_entrees_classificateur(training_set_path, clustering_path, PROFILS.loc[:, 'Adventure':'Film-Noir'])
+    q6.creation_entrees_classificateur('donnees/question6/entrees_classificateur_train.csv', training_set_path, clustering_path, PROFILS.loc[:, 'Adventure':'Film-Noir'])
+    q6.creation_entrees_classificateur('donnees/question6/entrees_classificateur_evaluation.csv', training_set_path, clustering_path, PROFILS.loc[:, 'Adventure':'Film-Noir'])
+    q6.creation_entrees_classificateur('donnees/question6/entrees_classificateur_test.csv', training_set_path, clustering_path, PROFILS.loc[:, 'Adventure':'Film-Noir'])
 
 
     # Modèle de base
@@ -102,7 +104,7 @@ if __name__ == "__main__" :
     # Recherche d'hyperparamètres
     best_classifier_estimator = classifier.chercher_hyperparametres(X_train, Y_train, seed)
     best_classifier = q6.classificateur(best_classifier_estimator)
-    best_classifier.evaluer(X_eval, X_eval)
+    best_classifier.evaluer(X_eval, Y_eval)
 
     # Test
     best_classifier.evaluer(X_test, Y_test)
